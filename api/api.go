@@ -28,12 +28,14 @@ type npmPackageResponse struct {
 	Dependencies map[string]string `json:"dependencies"`
 }
 
+// comment: Rename something like PackageDependencyTree?
 type NpmPackageVersion struct {
 	Name         string                        `json:"name"`
 	Version      string                        `json:"version"`
 	Dependencies map[string]*NpmPackageVersion `json:"dependencies"`
 }
 
+// comment: wrap / recovery mechanism (maybe logging too)
 func packageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pkgName := vars["package"]
@@ -60,6 +62,8 @@ func packageHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(stringified)
 }
 
+// comment: looks like it terminates with an error after any dependency fails to resolve, is that what we want? Are all deps gauranteed to be on NPM or have a semver?
+// comment: need to add cycle detection/prevention. How do we represent a child's dependency which is already included at a higher level in the tree?
 func resolveDependencies(pkg *NpmPackageVersion, versionConstraint string) error {
 	pkgMeta, err := fetchPackageMeta(pkg.Name)
 	if err != nil {
@@ -85,6 +89,7 @@ func resolveDependencies(pkg *NpmPackageVersion, versionConstraint string) error
 	return nil
 }
 
+// comment: these look like methods
 func highestCompatibleVersion(constraintStr string, versions *npmPackageMetaResponse) (string, error) {
 	constraint, err := semver.NewConstraint(constraintStr)
 	if err != nil {
@@ -112,6 +117,7 @@ func filterCompatibleVersions(constraint *semver.Constraints, pkgMeta *npmPackag
 	return compatible
 }
 
+// comment: make an interface and type 'PackageFetcher' move http client out/abstract it away
 func fetchPackage(name, version string) (*npmPackageResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("https://registry.npmjs.org/%s/%s", name, version))
 	if err != nil {
@@ -129,6 +135,7 @@ func fetchPackage(name, version string) (*npmPackageResponse, error) {
 	return &parsed, nil
 }
 
+// comment interface/type 'metadatafetcher'
 func fetchPackageMeta(p string) (*npmPackageMetaResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("https://registry.npmjs.org/%s", p))
 	if err != nil {
