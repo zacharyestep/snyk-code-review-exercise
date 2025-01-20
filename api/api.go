@@ -18,7 +18,7 @@ func New() http.Handler {
 	return router
 }
 
-// idea: might be nice to have a Value type for handling semver versions/ranges
+// idea: might be nice to have a Value type for handling semver versions / constraints
 type npmPackageMetaResponse struct {
 	Versions map[string]npmPackageResponse `json:"versions"`
 }
@@ -66,7 +66,6 @@ func packageHandler(w http.ResponseWriter, r *http.Request) {
 // comment: add a type+interface pair responsible recursive dependency resolution
 // idea: looks like it terminates with an error after any dependency fails to resolve, are we sure we want to do that?
 // comment: need to add cycle detection/prevention. Might want to control max recursion depth.
-// comment: How do we want to represent a child's dependency which is already included at a higher level in the tree?
 func resolveDependencies(pkg *NpmPackageVersion, versionConstraint string) error {
 	pkgMeta, err := fetchPackageMeta(pkg.Name)
 	if err != nil {
@@ -122,6 +121,7 @@ func filterCompatibleVersions(constraint *semver.Constraints, pkgMeta *npmPackag
 
 // comment: make an interface and type for fetching packages
 // comment: pass request-ctx to http client request builder
+// comment: fix ignored parsing error
 // idea: abstract out http.Client usage
 func fetchPackage(name, version string) (*npmPackageResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("https://registry.npmjs.org/%s/%s", name, version))
