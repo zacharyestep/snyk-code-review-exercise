@@ -18,6 +18,7 @@ func New() http.Handler {
 	return router
 }
 
+// idea: might be nice to have a Value type for handling semver versions/ranges
 type npmPackageMetaResponse struct {
 	Versions map[string]npmPackageResponse `json:"versions"`
 }
@@ -35,7 +36,7 @@ type NpmPackageVersion struct {
 	Dependencies map[string]*NpmPackageVersion `json:"dependencies"`
 }
 
-// comment: wrap / recovery mechanism (maybe logging too)
+// comment: wrap / recovery mechanism, timeout, (maybe logging too)
 func packageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pkgName := vars["package"]
@@ -62,8 +63,10 @@ func packageHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(stringified)
 }
 
-// comment: looks like it terminates with an error after any dependency fails to resolve, is that what we want? Are all deps gauranteed to be on NPM or have a semver?
-// comment: need to add cycle detection/prevention. How do we represent a child's dependency which is already included at a higher level in the tree?
+// comment: add a type+interface pair responsible recursive dependency resolution
+// idea: looks like it terminates with an error after any dependency fails to resolve, are we sure we want to do that?
+// comment: need to add cycle detection/prevention. Might want to control max recursion depth.
+// comment: How do we want to represent a child's dependency which is already included at a higher level in the tree?
 func resolveDependencies(pkg *NpmPackageVersion, versionConstraint string) error {
 	pkgMeta, err := fetchPackageMeta(pkg.Name)
 	if err != nil {
@@ -89,7 +92,7 @@ func resolveDependencies(pkg *NpmPackageVersion, versionConstraint string) error
 	return nil
 }
 
-// comment: these look like methods
+// comment: consider methods on npmPackageMetaResponse
 func highestCompatibleVersion(constraintStr string, versions *npmPackageMetaResponse) (string, error) {
 	constraint, err := semver.NewConstraint(constraintStr)
 	if err != nil {
@@ -117,7 +120,9 @@ func filterCompatibleVersions(constraint *semver.Constraints, pkgMeta *npmPackag
 	return compatible
 }
 
-// comment: make an interface and type 'PackageFetcher' move http client out/abstract it away
+// comment: make an interface and type for fetching packages
+// comment: pass request-ctx to http client request builder
+// idea: abstract out http.Client usage
 func fetchPackage(name, version string) (*npmPackageResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("https://registry.npmjs.org/%s/%s", name, version))
 	if err != nil {
@@ -135,7 +140,7 @@ func fetchPackage(name, version string) (*npmPackageResponse, error) {
 	return &parsed, nil
 }
 
-// comment interface/type 'metadatafetcher'
+// comment: create interface/type responsible for fetching metadata
 func fetchPackageMeta(p string) (*npmPackageMetaResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("https://registry.npmjs.org/%s", p))
 	if err != nil {
