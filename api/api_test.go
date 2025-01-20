@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//comment: this is a nice black-box test that tests the app end-to-end, it would be nice to have:
+// comment: this is a nice black-box test that tests the app end-to-end, it would be nice to have:
 // additional black box unit tests, and maybe the ability to cache and control the HTTP responses from the registry.
 func TestPackageHandler(t *testing.T) {
 	handler := api.New()
