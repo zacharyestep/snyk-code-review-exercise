@@ -23,6 +23,7 @@ type npmPackageMetaResponse struct {
 	Versions map[string]npmPackageResponse `json:"versions"`
 }
 
+// Idea: might be nice to pull name+version into their own struct
 type npmPackageResponse struct {
 	Name         string            `json:"name"`
 	Version      string            `json:"version"`
